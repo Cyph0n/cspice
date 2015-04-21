@@ -8,14 +8,30 @@
 #include <stdexcept>
 #include <regex>
 
-// C libs
-#include <cctype>
-#include <cstdlib>
-
 class parser_error : public std::exception {
+    unsigned int line;
+    std::string msg;
+
 public:
-    parser_error() {}
+    parser_error() {
+        this->msg = "";
+        this->line = 0;
+    }
+
+    parser_error(std::string msg, unsigned int line) {
+        this->msg = msg;
+        this->line = line;
+
+        print_error();
+    }
+
     ~parser_error() {}
+
+    unsigned int get_line() { return line; }
+
+    void print_error() {
+        std::cout << "[Line " << line << "] -> " << msg << std::endl;
+    }
 };
 
 template<typename T>
@@ -26,6 +42,12 @@ void clear_vector(std::vector<T*>& v) {
     v.clear();
 }
 
+enum class parser_state {
+    error,
+    parsed,
+    not_parsed
+};
+
 enum type {
     R,
     L,
@@ -33,6 +55,7 @@ enum type {
     D,
     M,
     VDC,
+    COMMENT_LINE,
     EMPTY_LINE,
     NONE
 };
@@ -92,6 +115,11 @@ class Parser {
 
     unsigned int line_no = 1;
 
+    parser_state parsed = parser_state::not_parsed;
+
+    // Default error
+    parser_error error;
+
     // Regexes
     const std::vector<const std::regex> regexes = {
         // Resistor, inductor, capacitor - split to simplify identification in loop
@@ -108,8 +136,11 @@ class Parser {
         // DC voltage source
         std::regex(R"(^(V(\d+)) (\d+) (\d+) (\d+\.?\d+?)$)", std::regex::icase),
 
-        // Empty line; what is the problem?
-        std::regex(R"(^[\r\t]*\n$)")
+        // Comment line
+        std::regex(R"(^%.*$)"),
+
+        // Empty line
+        std::regex(R"(^[ \r\t]*$)")
     };
 
 public:
@@ -124,7 +155,7 @@ public:
     }
 
     ~Parser() {
-        std::cout << "Destroyed!" << std::endl;
+        // std::cout << "Destroyed!" << std::endl;
 
         // Close file
         file.close();
@@ -134,14 +165,15 @@ public:
         clear_vector<Source>(sources);
     }
 
+    bool is_parsed() { return parsed == parser_state::parsed; }
+
+    parser_error& get_error();
+
     void parse();
     void print_components();
 
 private:
-    template<class T>
-    T* parse_line(const std::smatch, unsigned char);
-    // Component* parse_component(std::string line, std::smatch matches, unsigned char c);
-    // Source* parse_source(std::string line, std::smatch matches, unsigned char c);
+    template<class T> T* parse_line(const std::smatch, unsigned char);
 };
 
 #endif

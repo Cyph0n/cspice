@@ -5,22 +5,24 @@ void Parser::parse() {
 
     // Skip first line of input; SPICE syntax spec
     getline(file, line);
+    this->line_no++;
 
-    line_no++;
+    // Allocate for use in loop
+    Component* c;
+    Source* s;
+
+    std::smatch matches;
 
     while (!file.eof()) {
         // Get a line of input
         getline(file, line);
 
-        Component* c;
-        Source* s;
-
-        std::smatch matches;
-
-        // Keeps track of type in regex list
+        // Keep track of type in regex list
         unsigned int t = 0;
 
-        // Catch any syntax errors
+        // Flag for regex match
+        bool match = false;
+
         try {
             // Iterate through regex patterns; if match found, determine
             // which matched based on regex order in const vector
@@ -28,57 +30,72 @@ void Parser::parse() {
                 if (regex_search(line, matches, reg)) {
                     switch (t) {
                         case EMPTY_LINE:
-                            std::cout << "empty\n";
+                        case COMMENT_LINE:
+                            // std::cout << "Skipped" << std::endl;
                             break;
                         case R:
                         case L:
                         case C:
                         case D:
                         case M:
+                            // std::cout << "Component!" << std::endl;
                             c = this->parse_line<Component>(matches, t);
                             this->components.push_back(c);
 
                             break;
                         case VDC:
-                            std::cout << "v\n";
+                            // std::cout << "v\n";
 
                             s = this->parse_line<Source>(matches, t);
                             this->sources.push_back(s);
 
                             break;
-                        default:
-                            std::cout << "None?\n";
                     }
 
                     // Once found a match, no need to search more
+                    match = true;
+
                     break;
                 }
 
-                else
-                    throw parser_error();
-
                 t++;
+            }
+
+            if (!match) {
+                throw parser_error("Syntax error", this->line_no);
             }
         }
 
         catch (parser_error& e) {
-            std::cout << "Syntax error on line " << line_no << "." << std::endl;
+            this->error = e;
+            this->parsed = parser_state::error;
             break;
         }
 
-        line_no++;
+        this->line_no++;
     }
+
+    // If really at EOF, then file has been parsed
+    if (file.eof())
+        this->parsed = parser_state::parsed;
 }
 
 void Parser::print_components() {
-    for (auto c: this->components) {
-        std::cout << c->label << " " << c->n1 << " " << c->n2 << " " << c->n3 << std::endl;
+    if (this->parsed == parser_state::parsed) {
+        for (auto e: this->components) {
+            std::cout << e->label << " " << e->n1 << " " << e->n2 << " " << std::endl;
+        }
     }
+
+    else
+        std::cout << "The file has not been parsed successfully. Fix any issues and try again." << std::endl;
 }
 
 template<class T>
 T* Parser::parse_line(const std::smatch matches, unsigned char t) {
     T* temp;
+
+    // std::cout << matches[1] << " " << matches[5] << std::endl;
 
     try {
         if (t == VDC)
@@ -90,11 +107,13 @@ T* Parser::parse_line(const std::smatch matches, unsigned char t) {
     }
 
     catch (std::out_of_range& e) {
-        std::cout << "Value out of range on line " << line_no << std::endl;
         temp = nullptr;
-
-        throw parser_error();
+        throw parser_error("Value out of range. ", this->line_no);
     }
 
     return temp;
+}
+
+parser_error& Parser::get_error() {
+    return this->error;
 }

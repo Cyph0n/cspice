@@ -1,5 +1,7 @@
 % Spice test file
+% Cereal
 V1 1 0 12
 R1 1 0 100
 
+% This is transistor
 M1 1 0 45

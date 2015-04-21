@@ -3,9 +3,11 @@
 ## Now
 
 * Write a very simple SPICE syntax parser. Follow the spec from problem at the end of Chapter 1 of Najm's Circuit Simulation.
-    * Create one Component type with different constructors for overloading... will be complex
+    * Create one Component type with different constructors for overloading... will be complex [x]
+    * Instead of above, opted for Component class and Source class for simplicity [x]
+    * Issue with lost values for n1, n2, etc. --- TODO
 
-* Simulation engine:
+* Simulation engine --- PROBABLY NOT
     * Represent each node as an object (struct?). Stores pointer to each element connected to that node.
     * Store all nodes with sources connected in sources vector.
     * Store rest of nodes in general nodes vector.
