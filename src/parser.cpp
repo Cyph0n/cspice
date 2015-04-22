@@ -7,10 +7,6 @@ void Parser::parse() {
     getline(file, line);
     this->line_no++;
 
-    // Allocate for use in loop
-    Component* c;
-    Source* s;
-
     std::smatch matches;
 
     while (!file.eof()) {
@@ -31,24 +27,15 @@ void Parser::parse() {
                     switch (t) {
                         case EMPTY_LINE:
                         case COMMENT_LINE:
-                            // std::cout << "Skipped" << std::endl;
                             break;
                         case R:
                         case L:
                         case C:
                         case D:
-                        case M:
-                            // std::cout << "Component!" << std::endl;
-                            c = this->parse_line<Component>(matches, t);
-                            this->components.push_back(c);
-
+                            this->parse_line<Component>(matches, this->components, t);
                             break;
                         case VDC:
-                            // std::cout << "v\n";
-
-                            s = this->parse_line<Source>(matches, t);
-                            this->sources.push_back(s);
-
+                            this->parse_line<Source>(matches, this->sources, t);
                             break;
                     }
 
@@ -83,7 +70,7 @@ void Parser::parse() {
 void Parser::print_components() {
     if (this->parsed == parser_state::parsed) {
         for (auto e: this->components) {
-            std::cout << e->label << " " << e->n1 << " " << e->n2 << " " << std::endl;
+            std::cout << e.label << " " << e.n1 << " " << e.n2 << " " << e.value << std::endl;
         }
     }
 
@@ -92,26 +79,34 @@ void Parser::print_components() {
 }
 
 template<class T>
-T* Parser::parse_line(const std::smatch matches, unsigned char t) {
-    T* temp;
-
-    // std::cout << matches[1] << " " << matches[5] << std::endl;
+void Parser::parse_line(const std::smatch& matches, std::vector<T>& v, unsigned char t) {
+    T temp;
 
     try {
-        if (t == VDC)
-            temp = new T(matches[1], t, matches[3], matches[4], matches[5]);
-        else if (t == M)
-            temp = new T(matches[1], t, matches[3], matches[4], matches[5]);
+        if (t == VDC) {
+            temp = T(matches[1], t, matches[3], matches[4], matches[5]);
+        }
+
+        else if (t == D)
+            temp = T(matches[1], t, matches[3], matches[4], "0");
+
         else
-            temp = new T(matches[1], t, matches[3], matches[4], matches[5]);
+            temp = T(matches[1], t, matches[3], matches[4], matches[5]);
     }
 
     catch (std::out_of_range& e) {
-        temp = nullptr;
-        throw parser_error("Value out of range. ", this->line_no);
+        throw parser_error("Value out of range", this->line_no);
     }
 
-    return temp;
+    catch (std::invalid_argument& e) {
+        throw parser_error("Invalid value", this->line_no);
+    }
+
+    catch (std::exception& e) {
+        throw parser_error("Unknown error", this->line_no);
+    }
+
+    v.push_back(temp);
 }
 
 parser_error& Parser::get_error() {

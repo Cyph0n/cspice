@@ -35,10 +35,7 @@ public:
 };
 
 template<typename T>
-void clear_vector(std::vector<T*>& v) {
-    for (auto e: v)
-        delete e;
-
+void clear_vector(std::vector<T>& v) {
     v.clear();
 }
 
@@ -53,7 +50,6 @@ enum type {
     L,
     C,
     D,
-    M,
     VDC,
     COMMENT_LINE,
     EMPTY_LINE,
@@ -67,10 +63,13 @@ public:
     // R, L, C, etc.
     int type;
 
-    // Nodes; 3rd for M
-    int n1, n2, n3;
+    // Nodes
+    int n1, n2;
 
     double value;
+
+    // Default constructor
+    Component() {}
 
     // R, C, L, D, M
     Component(std::string label, int type, int n1, int n2, double value) {
@@ -78,38 +77,66 @@ public:
         this->n1 = n1;
         this->n2 = n2;
         this->type = type;
-
-        // Set sane defaults for value and n3
-        if (type != M) {
-            this->value = value;
-            this->n3 = -1;
-        }
-
-        else {
-            this->value = -1;
-            this->n3 = (int)value;
-        }
+        this->value = value;
     }
 
-    // Proxy constructor for direct calling
-    Component(std::string label, int type, std::string n1, std::string n2, std::string value) {
-        Component(label, type, std::stoi(n1, nullptr), std::stoi(n2, nullptr),
-                  std::stod(value, nullptr));
+    Component(std::string label, int type, std::string n1, std::string n2, std::string value):
+    Component(label, type, std::stoi(n1, nullptr), std::stoi(n2, nullptr),
+              std::stod(value, nullptr)) {}
+
+    // Clone another Component
+    Component(const Component& c) {
+        this->label = c.label;
+        this->value = c.value;
+        this->n1 = c.n1;
+        this->n2 = c.n2;
+        this->type = c.type;
+    }
+
+    // Copy another Component
+    Component& operator=(const Component& rhs) {
+        this->label = rhs.label;
+        this->value = rhs.value;
+        this->n1 = rhs.n1;
+        this->n2 = rhs.n2;
+        this->type = rhs.type;
+
+        return *this;
     }
 };
 
 class Source : public Component {
 public:
+    Source() {}
     Source(std::string label, int type, int n1, int n2, double value):
     Component(label, type, n1, n2, value) {}
 
-    Source(std::string label, int type, std::string n1, std::string n2, std::string value):
-    Component(label, type, n1, n2, value) {}
+    Source(std::string label, int type, std::string n1, std::string n2, std::string value) {
+        Component(label, type, n1, n2, value);
+    }
+
+    Source(const Source& s) {
+        this->label = s.label;
+        this->value = s.value;
+        this->n1 = s.n1;
+        this->n2 = s.n2;
+        this->type = s.type;
+    }
+
+    Source& operator=(const Source& rhs) {
+        this->label = rhs.label;
+        this->value = rhs.value;
+        this->n1 = rhs.n1;
+        this->n2 = rhs.n2;
+        this->type = rhs.type;
+
+        return *this;
+    }
 };
 
 class Parser {
-    std::vector<Component*> components;
-    std::vector<Source*> sources;
+    std::vector<Component> components;
+    std::vector<Source> sources;
 
     std::ifstream file;
 
@@ -123,18 +150,15 @@ class Parser {
     // Regexes
     const std::vector<const std::regex> regexes = {
         // Resistor, inductor, capacitor - split to simplify identification in loop
-        std::regex(R"(^(R(\d+)) (\d+) (\d+) (\d+\.?\d+?)$)", std::regex::icase),
-        std::regex(R"(^(L(\d+)) (\d+) (\d+) (\d+\.?\d+?)$)", std::regex::icase),
-        std::regex(R"(^(C(\d+)) (\d+) (\d+) (\d+\.?\d+?)$)", std::regex::icase),
+        std::regex(R"(^(R(\d+)) (\d+) (\d+) (\d+\.?\d+?)(\s*%.*)?$)", std::regex::icase),
+        std::regex(R"(^(L(\d+)) (\d+) (\d+) (\d+\.?\d+?)(\s*%.*)?$)", std::regex::icase),
+        std::regex(R"(^(C(\d+)) (\d+) (\d+) (\d+\.?\d+?)(\s*%.*)?$)", std::regex::icase),
 
         // Diode
-        std::regex(R"(^(D(\d+)) (\d+) (\d+)$)", std::regex::icase),
-
-        // Transistor
-        std::regex(R"(^(M(\d+)) (\d+) (\d+) (\d+)$)", std::regex::icase),
+        std::regex(R"(^(D(\d+)) (\d+) (\d+)(\s*%.*)?$)", std::regex::icase),
 
         // DC voltage source
-        std::regex(R"(^(V(\d+)) (\d+) (\d+) (\d+\.?\d+?)$)", std::regex::icase),
+        std::regex(R"(^(V(\d+)) (\d+) (\d+) (\d+\.?\d+?)(\s*%.*)?$)", std::regex::icase),
 
         // Comment line
         std::regex(R"(^%.*$)"),
@@ -144,7 +168,7 @@ class Parser {
     };
 
 public:
-    Parser(const std::string path) {
+    Parser(const std::string& path) {
         // Path must be relative to running process directory!
         file.open(path);
 
@@ -173,7 +197,7 @@ public:
     void print_components();
 
 private:
-    template<class T> T* parse_line(const std::smatch, unsigned char);
+    template<class T> void parse_line(const std::smatch&, std::vector<T>&, unsigned char);
 };
 
 #endif

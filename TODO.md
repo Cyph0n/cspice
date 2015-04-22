@@ -5,7 +5,9 @@
 * Write a very simple SPICE syntax parser. Follow the spec from problem at the end of Chapter 1 of Najm's Circuit Simulation.
     * Create one Component type with different constructors for overloading... will be complex [x]
     * Instead of above, opted for Component class and Source class for simplicity [x]
-    * Issue with lost values for n1, n2, etc. --- TODO
+    * Issue with lost values for n1, n2, etc. [x]
+        - Problem was T* temp () in parse_line was a *stack-allocated* pointer! As soon as it left the scope, it was discarded..
+    * Limit to two-terminal devices
 
 * Simulation engine --- PROBABLY NOT
     * Represent each node as an object (struct?). Stores pointer to each element connected to that node.

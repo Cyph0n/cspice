@@ -3,5 +3,8 @@
 V1 1 0 12
 R1 1 0 100
 
-% This is transistor
-M1 1 0 45
+% This is diode
+D100 3 1%a comment is ok
+
+% This line will raise an error!
+% A0 1 0 DUDE
