@@ -8,27 +8,27 @@
     * Issue with lost values for n1, n2, etc. [x]
         - Problem was T* temp () in parse_line was a *stack-allocated* pointer! As soon as it left the scope, it was discarded..
     * Limit to two-terminal devices
+    * Determine max node? [x]
+    * Check for invalid components [x]
+        * Connected to same node [x]
+        * Floating component
+    * regex vector -> ComponentRegex [x]
+    * Move matrix building to simulator.h [x]
+    * Write everything in header files (NO -- compile times increase significantly)
+    * Put components in separate header file [x]
+    * Add line number to component for further error reporting in Simulator [x]
+    * Transform all V sources to I sources
+    * Add all I sources to currents vector
+    * Implement Gaussian elimination solver for circuit matrix
 
-* Simulation engine --- PROBABLY NOT
-    * Represent each node as an object (struct?). Stores pointer to each element connected to that node.
-    * Store all nodes with sources connected in sources vector.
-    * Store rest of nodes in general nodes vector.
-
-    * For DC:
-        1. Iterate through each source -> apply superposition; compute all node voltages assuming only
-           that source is operational.
-        2. Output node values.
-
-    * For AC and Transient:
-        * Do the same as for DC, but complete simulation at each time step. Output values of all nodes
-          to temp file.
+* Simulation engine
+    * Given sources and components, construct circuit matrix (Y matrix)
+        - Yv = I
+        - for VDC, Norton that baby
+    * Once matrix constructed, do simple Gaussian elimination
 
 
 ## Next
-
-* Implement basic SPICE syntax parser. Two different possible approaches:
-    1. Simple line-by-line parser. Use spaces as seperators. Detect keywords and node names using a simple lookup table.
-    2. More advanced approach -> lexer and parser. Watch Compiler course.
 
 * Write a REPL that allows further commands to be run (sim, plot, etc.)
     * Should allow for verification of design given spec

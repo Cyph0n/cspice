@@ -1,5 +1,28 @@
 #include "parser.h"
 
+Parser::Parser(const std::string& path) {
+    // Path must be relative to running process directory!
+    file.open(path);
+
+    if (!file.is_open()) {
+        std::cout << "File does not exist.\n";
+        exit(0);
+    }
+}
+
+Parser::~Parser() {
+    // Close file
+    file.close();
+}
+
+bool Parser::is_parsed() {
+    return this->state == parser_state::parsed;
+}
+
+parser_error& Parser::get_error() {
+    return this->error;
+}
+
 void Parser::parse() {
     std::string line;
 
@@ -9,33 +32,29 @@ void Parser::parse() {
 
     std::smatch matches;
 
+    // Track highest node in file to determine matrix size
+    int max_node = -1;
+
     while (!file.eof()) {
         // Get a line of input
         getline(file, line);
-
-        // Keep track of type in regex list
-        unsigned int t = 0;
 
         // Flag for regex match
         bool match = false;
 
         try {
             // Iterate through regex patterns; if match found, determine
-            // which matched based on regex order in const vector
-            for (auto reg: regexes) {
-                if (regex_search(line, matches, reg)) {
-                    switch (t) {
-                        case EMPTY_LINE:
-                        case COMMENT_LINE:
+            // which component matched
+            for (auto r: this->regexes) {
+                if (regex_search(line, matches, r.reg)) {
+                    switch (r.type) {
+                        case EMPTY_LINE: case COMMENT_LINE:
                             break;
-                        case R:
-                        case L:
-                        case C:
-                        case D:
-                            this->parse_line<Component>(matches, this->components, t);
+                        case R: case L: case C: case D:
+                            this->parse_line<Component>(matches, this->comps, r.type, &max_node);
                             break;
                         case VDC:
-                            this->parse_line<Source>(matches, this->sources, t);
+                            this->parse_line<Source>(matches, this->sources, r.type, &max_node);
                             break;
                     }
 
@@ -44,71 +63,71 @@ void Parser::parse() {
 
                     break;
                 }
-
-                t++;
             }
 
             if (!match) {
-                throw parser_error("Syntax error", this->line_no);
+                throw parser_error("Syntax error", line, this->line_no);
             }
         }
 
         catch (parser_error& e) {
             this->error = e;
-            this->parsed = parser_state::error;
-            break;
+            this->state = parser_state::error;
+            exit(0);
         }
 
         this->line_no++;
     }
 
     // If really at EOF, then file has been parsed
-    if (file.eof())
-        this->parsed = parser_state::parsed;
-}
-
-void Parser::print_components() {
-    if (this->parsed == parser_state::parsed) {
-        for (auto e: this->components) {
-            std::cout << e.label << " " << e.n1 << " " << e.n2 << " " << e.value << std::endl;
-        }
+    if (file.eof()) {
+        this->state = parser_state::parsed;
+        this->max_node = max_node;
     }
-
-    else
-        std::cout << "The file has not been parsed successfully. Fix any issues and try again." << std::endl;
 }
 
 template<class T>
-void Parser::parse_line(const std::smatch& matches, std::vector<T>& v, unsigned char t) {
+void Parser::parse_line(const std::smatch& matches, std::vector<T>& v, unsigned char t, int* max_node) {
     T temp;
 
     try {
-        if (t == VDC) {
-            temp = T(matches[1], t, matches[3], matches[4], matches[5]);
+        if (t == VDC)
+            temp = T(matches[1], t, matches[3], matches[4], matches[5], this->line_no);
+
+        else {
+            if (t == D)
+                temp = T(matches[1], t, matches[3], matches[4], "0", this->line_no);
+            else
+                temp = T(matches[1], t, matches[3], matches[4], matches[5], this->line_no);
+
+            // Track max_node
+            if (temp.n1 > *max_node || temp.n2 > *max_node) {
+                if (temp.n1 > temp.n2)
+                    *max_node = temp.n1;
+                else
+                    *max_node = temp.n2;
+            }
         }
-
-        else if (t == D)
-            temp = T(matches[1], t, matches[3], matches[4], "0");
-
-        else
-            temp = T(matches[1], t, matches[3], matches[4], matches[5]);
     }
 
     catch (std::out_of_range& e) {
-        throw parser_error("Value out of range", this->line_no);
+        throw parser_error("Value out of range", matches[0], this->line_no);
     }
 
     catch (std::invalid_argument& e) {
-        throw parser_error("Invalid value", this->line_no);
+        throw parser_error("Invalid value", matches[0], this->line_no);
     }
 
     catch (std::exception& e) {
-        throw parser_error("Unknown error", this->line_no);
+        throw parser_error("Unknown error", matches[0], this->line_no);
     }
 
-    v.push_back(temp);
-}
+    // Some other possible errors
+    if (temp.n1 == temp.n2)
+        throw parser_error("Component nodes must be different", matches[0], this->line_no);
 
-parser_error& Parser::get_error() {
-    return this->error;
+    if (temp.value <= 0)
+        throw parser_error("Component value must be > 0", matches[0], this->line_no);
+
+    v.push_back(temp);
 }

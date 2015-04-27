@@ -1,21 +1,19 @@
 #include <iostream>
-#include <vector>
-#include <string>
 
 #include "parser.h"
-// #include "simulator.h"
+#include "simulator.h"
 
 int main(int argc, char *argv[]) {
     Parser p ("test.txt");
     p.parse();
 
-    p.print_components();
-
-    std::cout << p.is_parsed() << std::endl;
+    std::cout << "Parsed successfully? " << p.is_parsed() << std::endl;
 
     parser_error e = p.get_error();
 
-    std::cout << e.get_line() << std::endl;
+    std::cout << "Error on line: " << e.get_line() << std::endl;
+
+    Simulator s (p);
 
     return 0;
 }
