@@ -23,6 +23,18 @@ parser_error& Parser::get_error() {
     return this->error;
 }
 
+unsigned int Parser::get_max_node() {
+    return this->max_node;
+}
+
+std::vector<Source>& Parser::get_sources() {
+    return this->sources;
+}
+
+std::vector<Component>& Parser::get_components() {
+    return this->comps;
+}
+
 void Parser::parse() {
     std::string line;
 
@@ -50,10 +62,10 @@ void Parser::parse() {
                     switch (r.type) {
                         case EMPTY_LINE: case COMMENT_LINE:
                             break;
-                        case R: case L: case C: case D:
+                        case R:
                             this->parse_line<Component>(matches, this->comps, r.type, &max_node);
                             break;
-                        case VDC:
+                        case VDC: case IDC:
                             this->parse_line<Source>(matches, this->sources, r.type, &max_node);
                             break;
                     }
@@ -91,14 +103,12 @@ void Parser::parse_line(const std::smatch& matches, std::vector<T>& v, unsigned 
     T temp;
 
     try {
-        if (t == VDC)
+        if (t == VDC || t == IDC) {
             temp = T(matches[1], t, matches[3], matches[4], matches[5], this->line_no);
+        }
 
         else {
-            if (t == D)
-                temp = T(matches[1], t, matches[3], matches[4], "0", this->line_no);
-            else
-                temp = T(matches[1], t, matches[3], matches[4], matches[5], this->line_no);
+            temp = T(matches[1], t, matches[3], matches[4], matches[5], this->line_no);
 
             // Track max_node
             if (temp.n1 > *max_node || temp.n2 > *max_node) {
@@ -124,9 +134,10 @@ void Parser::parse_line(const std::smatch& matches, std::vector<T>& v, unsigned 
 
     // Some other possible errors
     if (temp.n1 == temp.n2)
-        throw parser_error("Component nodes must be different", matches[0], this->line_no);
+        throw parser_error("Nodes must be different", matches[0], this->line_no);
 
-    if (temp.value <= 0)
+    // Resistor value must be > 0
+    if (temp.value <= 0 && t == R)
         throw parser_error("Component value must be > 0", matches[0], this->line_no);
 
     v.push_back(temp);

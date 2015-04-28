@@ -18,11 +18,8 @@ public:
     // Default constructor - no message
     parser_error(): msg(""), line(0) {}
 
-    parser_error(std::string msg, std::string line_content, unsigned int line) {
-        this->msg = msg;
-        this->line_content = line_content;
-        this->line = line;
-
+    parser_error(std::string msg, std::string line_content, unsigned int line):
+    msg(msg), line_content(line_content), line(line) {
         print_error();
     }
 
@@ -43,10 +40,10 @@ enum class parser_state {
 
 enum line_type {
     R,
-    L,
-    C,
-    D,
+    // L,
+    // C,
     VDC,
+    IDC,
     COMMENT_LINE,
     EMPTY_LINE,
     NONE
@@ -67,33 +64,37 @@ class Parser {
 
     unsigned int line_no = 1;
 
-    // Regexes for line parsing
-    const std::vector<ComponentRegex> regexes = {
-        ComponentRegex(R, std::regex(R"(^(R(\d+)) (\d+) (\d+) (\d+\.?\d+?)(\s*%.*)?$)", std::regex::icase)),
-        ComponentRegex(L, std::regex(R"(^(L(\d+)) (\d+) (\d+) (\d+\.?\d+?)(\s*%.*)?$)", std::regex::icase)),
-        ComponentRegex(C, std::regex(R"(^(C(\d+)) (\d+) (\d+) (\d+\.?\d+?)(\s*%.*)?$)", std::regex::icase)),
-        ComponentRegex(D, std::regex(R"(^(D(\d+)) (\d+) (\d+)(\s*%.*)?$)", std::regex::icase)),
-        ComponentRegex(VDC, std::regex(R"(^(V(\d+)) (\d+) (\d+) (\d+\.?\d+?)(\s*%.*)?$)", std::regex::icase)),
-        ComponentRegex(COMMENT_LINE, std::regex(R"(^%.*$)")),
-        ComponentRegex(EMPTY_LINE, std::regex(R"(^[ \r\t]*$)"))
-    };
-
-public:
     std::vector<Source> sources;
     std::vector<Component> comps;
-
-    // Track max node seen in file
-    unsigned int max_node;
 
     parser_state state = parser_state::not_parsed;
 
     // Default error
     parser_error error;
 
+    // Track max node seen in file
+    unsigned int max_node;
+
+    // Regexes for line parsing
+    const std::vector<ComponentRegex> regexes = {
+        ComponentRegex(R, std::regex(R"(^(R(\d+)) (\d+) (\d+) (\d+\.?\d+?)(\s*%.*)?$)", std::regex::icase)),
+        // ComponentRegex(L, std::regex(R"(^(L(\d+)) (\d+) (\d+) (\d+\.?\d+?)(\s*%.*)?$)", std::regex::icase)),
+        // ComponentRegex(C, std::regex(R"(^(C(\d+)) (\d+) (\d+) (\d+\.?\d+?)(\s*%.*)?$)", std::regex::icase)),
+        // ComponentRegex(VDC, std::regex(R"(^(V(\d+)) (\d+) (\d+) (\d+\.?\d+?)(\s*%.*)?$)", std::regex::icase)),
+        ComponentRegex(IDC, std::regex(R"(^(I(\d+)) (\d+) (\d+) (\d+\.?\d+?)(\s*%.*)?$)", std::regex::icase)),
+        ComponentRegex(COMMENT_LINE, std::regex(R"(^%.*$)")),
+        ComponentRegex(EMPTY_LINE, std::regex(R"(^[ \r\t]*$)"))
+    };
+
+public:
     Parser(const std::string& path);
     ~Parser();
 
+    std::vector<Source>& get_sources();
+    std::vector<Component>& get_components();
+
     bool is_parsed();
+    unsigned int get_max_node();
     parser_error& get_error();
     void parse();
 

@@ -29,9 +29,16 @@
 class Simulator {
     std::vector<std::vector<double>> circuit;
     std::vector<double> currents;
+
+    bool _error = false;
+
 public:
     Simulator(Parser& p);
 
+    std::vector<double>& get_currents();
+    std::vector<std::vector<double>>& get_circuit();
+
+    bool error();
 };
 
 #endif

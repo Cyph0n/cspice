@@ -67,10 +67,19 @@ public:
     Source() {}
 
     Source(std::string label, int type, int n1, int n2, double value, unsigned int line):
-    Component(label, type, n1, n2, value, line) {}
+    Component(label, type, n1, n2, value, line) {
+        this->label = label;
+        this->n1 = n1;
+        this->n2 = n2;
+        this->type = type;
+        this->value = value;
+        this->line = line;
+    }
 
-    Source(std::string label, int type, std::string n1, std::string n2, std::string value, unsigned int line) {
-        Component(label, type, n1, n2, value, line);
+    Source(std::string label, int type, std::string n1, std::string n2, std::string value, unsigned int line):
+    Component(label, type, n1, n2, value, line) {
+        Source(label, type, std::stoi(n1, nullptr), std::stoi(n2, nullptr),
+               std::stod(value, nullptr), line);
     }
 
     Source(const Source& s) {
