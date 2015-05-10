@@ -28,7 +28,7 @@ public:
     unsigned int get_line() { return line; }
 
     void print_error() {
-        std::cerr << "*** (PARSER ERROR) " << msg << " on line " << line << " -> [" << line_content << "]" << " ***" << std::endl;
+        std::cerr << "*** (PARSER ERROR) " << msg << " on line " << line << " -> [" << line_content << "]" << " ***\n";
     }
 };
 
@@ -73,13 +73,11 @@ class Parser {
     parser_error error;
 
     // Track max node seen in file
-    unsigned int max_node;
+    int max_node = -1;
 
     // Regexes for line parsing
     const std::vector<ComponentRegex> regexes = {
         ComponentRegex(R, std::regex(R"(^(R(\d+)) (\d+) (\d+) (\d+\.?\d+?)(\s*%.*)?$)", std::regex::icase)),
-        // ComponentRegex(L, std::regex(R"(^(L(\d+)) (\d+) (\d+) (\d+\.?\d+?)(\s*%.*)?$)", std::regex::icase)),
-        // ComponentRegex(C, std::regex(R"(^(C(\d+)) (\d+) (\d+) (\d+\.?\d+?)(\s*%.*)?$)", std::regex::icase)),
         // ComponentRegex(VDC, std::regex(R"(^(V(\d+)) (\d+) (\d+) (\d+\.?\d+?)(\s*%.*)?$)", std::regex::icase)),
         ComponentRegex(IDC, std::regex(R"(^(I(\d+)) (\d+) (\d+) (\d+\.?\d+?)(\s*%.*)?$)", std::regex::icase)),
         ComponentRegex(COMMENT_LINE, std::regex(R"(^%.*$)")),
@@ -97,9 +95,11 @@ public:
     unsigned int get_max_node();
     parser_error& get_error();
     void parse();
+    void insert_line(const std::string&);
+    bool match_line(const std::string&);
 
 private:
-    template<class T> void parse_line(const std::smatch&, std::vector<T>&, unsigned char, int*);
+    template<class T> void parse_line(const std::smatch&, std::vector<T>&, unsigned char);
 };
 
 #endif

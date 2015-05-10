@@ -30,15 +30,18 @@ class Simulator {
     std::vector<std::vector<double>> circuit;
     std::vector<double> currents;
 
-    bool _error = false;
+    bool error = false;
 
 public:
-    Simulator(Parser& p);
+    Simulator() {}
 
     std::vector<double>& get_currents();
     std::vector<std::vector<double>>& get_circuit();
 
-    bool error();
+    void simulate(Parser& p);
+    void insert_line(const std::string& line, Parser& p);
+
+    bool is_error();
 };
 
 #endif

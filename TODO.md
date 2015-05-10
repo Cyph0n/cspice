@@ -17,7 +17,7 @@
     * Write everything in header files (NO -- compile times increase significantly)
     * Put components in separate header file [x]
     * Add line number to component for further error reporting in Simulator [x]
-    * Transform all V sources to I sources
+    * Transform all V sources to I sources [later]
     * Add all I sources to currents vector
     * Implement Gaussian elimination solver for circuit matrix
 

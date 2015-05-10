@@ -1,6 +1,11 @@
 #include "simulator.h"
 
-Simulator::Simulator(Parser& p) {
+// Quick proxy into insert_line
+void Simulator::insert_line(const std::string& line, Parser& p) {
+    p.insert_line(line);
+}
+
+void Simulator::simulate(Parser& p) {
     if (p.is_parsed()) {
         int i, j;
 
@@ -12,8 +17,6 @@ Simulator::Simulator(Parser& p) {
         // Init current vector
         for (i = 0; i <= max_node; i++)
             this->currents.push_back(0);
-
-        std::cout << sources.size() << std::endl;
 
         // Add currents at n1 = i to currents[i] and n2 = j -ve
         for (auto s: sources) {
@@ -41,8 +44,7 @@ Simulator::Simulator(Parser& p) {
         }
 
         catch (parser_error& e) {
-            this->_error = true;
-            exit(0);
+            this->error = true;
         }
     }
 }
@@ -55,6 +57,6 @@ std::vector<std::vector<double>>& Simulator::get_circuit() {
     return this->circuit;
 }
 
-bool Simulator::error() {
-    return this->_error;
+bool Simulator::is_error() {
+    return this->error;
 }

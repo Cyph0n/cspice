@@ -12,7 +12,7 @@ $(TARGET): parser.o simulator.o cspice.o
 	@echo "Linking.."
 	$(CC) $(LINKER_OPTS) $(BUILDDIR)/cspice.o $(BUILDDIR)/parser.o  $(BUILDDIR)/simulator.o -o $(TARGET)
 
-	@./bin/cspice # Run the program
+	#@./bin/cspice # Run the program
 
 parser.o:
 	@mkdir -p $(BUILDDIR)

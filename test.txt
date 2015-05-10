@@ -1,6 +1,6 @@
 % Spice test file
 % Cereal
-V1 1 0 12
+%V1 1 0 12
 R1 1 0 100
 R2 1 2 100
 

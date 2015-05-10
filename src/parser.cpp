@@ -6,7 +6,6 @@ Parser::Parser(const std::string& path) {
 
     if (!file.is_open()) {
         std::cout << "File does not exist.\n";
-        exit(0);
     }
 }
 
@@ -55,27 +54,30 @@ void Parser::parse() {
         bool match = false;
 
         try {
-            // Iterate through regex patterns; if match found, determine
-            // which component matched
-            for (auto r: this->regexes) {
-                if (regex_search(line, matches, r.reg)) {
-                    switch (r.type) {
-                        case EMPTY_LINE: case COMMENT_LINE:
-                            break;
-                        case R:
-                            this->parse_line<Component>(matches, this->comps, r.type, &max_node);
-                            break;
-                        case VDC: case IDC:
-                            this->parse_line<Source>(matches, this->sources, r.type, &max_node);
-                            break;
-                    }
+            // Check for line match
+            match = this->match_line(line);
 
-                    // Once found a match, no need to search more
-                    match = true;
+            // // Iterate through regex patterns; if match found, determine
+            // // which component matched
+            // for (auto r: this->regexes) {
+            //     if (regex_search(line, matches, r.reg)) {
+            //         switch (r.type) {
+            //             case EMPTY_LINE: case COMMENT_LINE:
+            //                 break;
+            //             case R:
+            //                 this->parse_line<Component>(matches, this->comps, r.type, &max_node);
+            //                 break;
+            //             case VDC: case IDC:
+            //                 this->parse_line<Source>(matches, this->sources, r.type, &max_node);
+            //                 break;
+            //         }
 
-                    break;
-                }
-            }
+            //         // Once found a match, no need to search more
+            //         match = true;
+
+            //         break;
+            //     }
+            //}
 
             if (!match) {
                 throw parser_error("Syntax error", line, this->line_no);
@@ -85,7 +87,7 @@ void Parser::parse() {
         catch (parser_error& e) {
             this->error = e;
             this->state = parser_state::error;
-            exit(0);
+            break;
         }
 
         this->line_no++;
@@ -94,12 +96,55 @@ void Parser::parse() {
     // If really at EOF, then file has been parsed
     if (file.eof()) {
         this->state = parser_state::parsed;
-        this->max_node = max_node;
     }
 }
 
+void Parser::insert_line(const std::string& line) {
+    try {
+        bool match = this->match_line(line);
+
+        if (match)
+            this->line_no++;
+        else
+            throw parser_error("Syntax error", line, -1);
+    }
+
+    catch (parser_error& e) {
+    }
+}
+
+bool Parser::match_line(const std::string& line) {
+    std::smatch matches;
+
+    bool match = false;
+
+    // Iterate through regex patterns; if match found, determine
+    // which component matched
+    for (auto r: this->regexes) {
+        if (regex_search(line, matches, r.reg)) {
+            switch (r.type) {
+                case EMPTY_LINE: case COMMENT_LINE:
+                    break;
+                case R:
+                    this->parse_line<Component>(matches, this->comps, r.type);
+                    break;
+                case VDC: case IDC:
+                    this->parse_line<Source>(matches, this->sources, r.type);
+                    break;
+            }
+
+            // Once found a match, no need to search more
+            match = true;
+
+            break;
+        }
+    }
+
+    return match;
+}
+
 template<class T>
-void Parser::parse_line(const std::smatch& matches, std::vector<T>& v, unsigned char t, int* max_node) {
+void Parser::parse_line(const std::smatch& matches, std::vector<T>& v, unsigned char t) {
     T temp;
 
     try {
@@ -111,11 +156,11 @@ void Parser::parse_line(const std::smatch& matches, std::vector<T>& v, unsigned 
             temp = T(matches[1], t, matches[3], matches[4], matches[5], this->line_no);
 
             // Track max_node
-            if (temp.n1 > *max_node || temp.n2 > *max_node) {
+            if (temp.n1 > this->max_node || temp.n2 > this->max_node) {
                 if (temp.n1 > temp.n2)
-                    *max_node = temp.n1;
+                    this->max_node = temp.n1;
                 else
-                    *max_node = temp.n2;
+                    this->max_node = temp.n2;
             }
         }
     }
